@@ -1,0 +1,68 @@
+# ============================================
+# Java / Maven
+# ============================================
+target/
+*.jar
+*.war
+*.ear
+*.class
+dependency-reduced-pom.xml
+
+# Maven wrapper (optional - keep if you want)
+# mvnw
+# mvnw.cmd
+# .mvn/
+
+# ============================================
+# IDE - Eclipse
+# ============================================
+.settings/
+.classpath
+.project
+.factorypath
+bin/
+
+# ============================================
+# IDE - IntelliJ / Cursor (shares IntelliJ config)
+# ============================================
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# ============================================
+# IDE - VS Code
+# ============================================
+.vscode/
+
+# ============================================
+# OS Files
+# ============================================
+.DS_Store
+Thumbs.db
+
+# ============================================
+# Logs / Temp
+# ============================================
+*.log
+logs/
+tmp/
+*.tmp
+*.swp
+*.swo
+*~
+
+# ============================================
+# Environment / Secrets (NEVER commit these)
+# ============================================
+.env
+*.properties.local
+application-local.properties
+application-dev.properties
+!application.properties          # Keep default, ignore local overrides
+
+# API Keys / Credentials
+*.pem
+*.key
+secrets/
