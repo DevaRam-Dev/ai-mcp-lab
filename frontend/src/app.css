@@ -1,0 +1,606 @@
+/**
+ * app.css — Global stylesheet for AI MCP Lab frontend
+ *
+ * WHY THIS FILE EXISTS:
+ * All CSS for the application lives here — one file, no CSS Modules, no Tailwind,
+ * no styled-components. This maximises transparency for a learning project: every
+ * style rule is in one place and easy to find.
+ *
+ * ORGANISATION (sections separated by ---- Section ---- comments):
+ *   1. CSS Variables   — design tokens (colours, spacing, radii, shadows)
+ *   2. Reset / Base    — browser default overrides for consistent rendering
+ *   3. App Layout      — outer shell, nav bar, page content area
+ *   4. Navigation      — top nav brand and links
+ *   5. Page Elements   — page wrapper, header, title, filter bar
+ *   6. Table           — data table with borders, alternating rows, hover state
+ *   7. Buttons         — primary, secondary, edit, delete variants
+ *   8. Modal           — overlay backdrop and dialog box
+ *   9. Forms           — form groups, labels, inputs, selects, error states
+ *  10. Status States   — loading text, error banners, empty table row
+ *
+ * CLASS NAMING CONVENTION: camelCase — matches the className props in all TSX files.
+ */
+
+/* ===========================================================================
+   1. CSS Variables — Design Tokens
+   Defined on :root so they're available everywhere in the document.
+   Changing a variable here updates every component that uses it.
+   =========================================================================== */
+:root {
+  /* Colour palette */
+  --colorPrimary:        #2563eb;   /* Blue — primary buttons, active nav link */
+  --colorPrimaryHover:   #1d4ed8;   /* Darker blue for hover state */
+  --colorDanger:         #dc2626;   /* Red — delete buttons, error banners */
+  --colorDangerHover:    #b91c1c;   /* Darker red for hover state */
+  --colorSecondary:      #6b7280;   /* Grey — secondary/cancel buttons */
+  --colorSecondaryHover: #4b5563;
+
+  /* Backgrounds */
+  --bgApp:      #f3f4f6;   /* Light grey — entire page background */
+  --bgNav:      #1e293b;   /* Dark slate — navigation bar */
+  --bgCard:     #ffffff;   /* White — table and modal background */
+  --bgRowAlt:   #f9fafb;   /* Very light grey — alternating table rows */
+  --bgRowHover: #eff6ff;   /* Light blue tint — row hover state */
+
+  /* Text */
+  --textPrimary:   #111827;   /* Near-black — main body text */
+  --textSecondary: #6b7280;   /* Medium grey — secondary labels, empty state */
+  --textOnDark:    #f1f5f9;   /* Off-white — text on the dark nav bar */
+
+  /* Borders */
+  --borderColor:  #d1d5db;   /* Light grey — table borders, input borders */
+  --borderRadius: 6px;        /* Standard corner radius for inputs, buttons, cards */
+  --borderRadiusLg: 10px;     /* Larger radius for modals */
+
+  /* Spacing */
+  --spacingSm:  8px;
+  --spacingMd:  16px;
+  --spacingLg:  24px;
+  --spacingXl:  32px;
+
+  /* Shadows */
+  --shadowCard:  0 1px 3px rgba(0, 0, 0, 0.10), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadowModal: 0 20px 60px rgba(0, 0, 0, 0.30);
+
+  /* Typography */
+  --fontFamily: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --fontSizeSm:   0.875rem;   /* 14px */
+  --fontSizeBase: 1rem;       /* 16px */
+  --fontSizeLg:   1.125rem;   /* 18px */
+  --fontSizeXl:   1.5rem;     /* 24px */
+}
+
+/* ===========================================================================
+   2. Reset / Base Styles
+   Overrides browser defaults to ensure consistent rendering across browsers.
+   =========================================================================== */
+
+/* Box-sizing: make width/height include padding and border, not add to it.
+   Without this, adding padding to an element makes it LARGER than intended.
+   `inherit` ensures every element uses the same model as its parent. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--fontFamily);
+  font-size: var(--fontSizeBase);
+  color: var(--textPrimary);
+  background-color: var(--bgApp);
+  /* min-height: 100vh ensures the background covers the full screen even on short pages */
+  min-height: 100vh;
+  /* Improves text rendering on macOS/Windows */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Remove default list styling — we use <ul> only in navigation */
+ul {
+  list-style: none;
+}
+
+/* Make buttons inherit font so they match the rest of the page.
+   Browser default gives buttons a different system font. */
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ===========================================================================
+   3. App Layout
+   The overall shell: nav at the top, page content below.
+   =========================================================================== */
+
+/* .appContainer wraps the entire application — nav + content */
+.appContainer {
+  display: flex;
+  flex-direction: column;  /* Stack nav above content vertically */
+  min-height: 100vh;        /* Full viewport height so footer (if added) sits at bottom */
+}
+
+/* .pageContent is the main content area below the nav bar */
+.pageContent {
+  flex: 1;                  /* Takes up all remaining vertical space after the nav */
+  padding: var(--spacingLg) var(--spacingXl);
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;           /* Centre the content area horizontally */
+}
+
+/* ===========================================================================
+   4. Navigation Bar
+   Dark top bar with brand name on the left and page links on the right.
+   =========================================================================== */
+
+.topNav {
+  background-color: var(--bgNav);
+  padding: 0 var(--spacingXl);
+  height: 56px;
+  display: flex;
+  align-items: center;         /* Vertically centre brand and links */
+  justify-content: space-between;
+  /* Subtle shadow below the nav separates it from the page content */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.20);
+}
+
+.navBrand {
+  display: flex;
+  align-items: center;
+}
+
+.navBrandText {
+  color: var(--textOnDark);
+  font-size: var(--fontSizeLg);
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+/* Container for the navigation links (right side of the nav) */
+.navLinks {
+  display: flex;
+  gap: var(--spacingLg);   /* Space between the two nav links */
+  align-items: center;
+}
+
+/* Individual nav link — base state */
+.navLink {
+  color: #94a3b8;           /* Muted blue-grey — clearly visible on dark bg but not distracting */
+  text-decoration: none;
+  font-size: var(--fontSizeSm);
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: var(--borderRadius);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.navLink:hover {
+  color: var(--textOnDark);
+  background-color: rgba(255, 255, 255, 0.10);
+}
+
+/* Active nav link — the current page */
+.navLinkActive {
+  color: #ffffff;           /* Full white — stands out from the inactive grey */
+  font-weight: 600;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ===========================================================================
+   5. Page Elements
+   Shared elements used on both the Employees and Departments pages.
+   =========================================================================== */
+
+/* .pageWrapper is the outermost div inside each page component */
+.pageWrapper {
+  padding-top: var(--spacingMd);
+}
+
+/* .pageHeader contains the page title and the primary action button (Add...) */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;  /* Title on left, button on right */
+  margin-bottom: var(--spacingLg);
+}
+
+.pageTitle {
+  font-size: var(--fontSizeXl);
+  font-weight: 700;
+  color: var(--textPrimary);
+}
+
+/* ---- Filter Bar (Employees page only) ---- */
+
+/* The row containing "Filter by Department:" label and dropdown */
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacingMd);
+  margin-bottom: var(--spacingMd);
+  padding: var(--spacingMd);
+  background-color: var(--bgCard);
+  border: 1px solid var(--borderColor);
+  border-radius: var(--borderRadius);
+}
+
+.filterLabel {
+  font-size: var(--fontSizeSm);
+  font-weight: 500;
+  color: var(--textSecondary);
+  white-space: nowrap;   /* Prevent "Filter by Department:" from wrapping */
+}
+
+.filterSelect {
+  padding: 6px 10px;
+  border: 1px solid var(--borderColor);
+  border-radius: var(--borderRadius);
+  font-size: var(--fontSizeSm);
+  color: var(--textPrimary);
+  background-color: var(--bgCard);
+  min-width: 200px;
+  cursor: pointer;
+}
+
+.filterSelect:focus {
+  outline: 2px solid var(--colorPrimary);
+  outline-offset: 2px;
+}
+
+/* ===========================================================================
+   6. Data Table
+   Used on both pages to display rows of employees / departments.
+   =========================================================================== */
+
+/* .tableWrapper enables horizontal scrolling on small screens instead of
+   breaking the layout. The table won't shrink below its natural width. */
+.tableWrapper {
+  background-color: var(--bgCard);
+  border: 1px solid var(--borderColor);
+  border-radius: var(--borderRadius);
+  overflow-x: auto;        /* Scroll horizontally if the table is wider than the screen */
+  box-shadow: var(--shadowCard);
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;  /* Remove gaps between adjacent cell borders */
+  font-size: var(--fontSizeSm);
+}
+
+/* Table header */
+.dataTable thead tr {
+  background-color: #f8fafc;
+  border-bottom: 2px solid var(--borderColor);  /* Thicker border separates header from body */
+}
+
+.dataTable th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--textSecondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;     /* Uppercase + letter-spacing = "label" feel */
+}
+
+/* Table body rows */
+.dataTable tbody tr {
+  border-bottom: 1px solid var(--borderColor);
+  transition: background-color 0.1s ease;
+}
+
+/* Remove the bottom border on the very last row — there's already a container border */
+.dataTable tbody tr:last-child {
+  border-bottom: none;
+}
+
+/* Alternating row colours improve readability for wide tables */
+.dataTable tbody tr:nth-child(even) {
+  background-color: var(--bgRowAlt);
+}
+
+/* Hover state gives the user visual feedback on which row the cursor is on */
+.dataTable tbody tr:hover {
+  background-color: var(--bgRowHover);
+}
+
+.dataTable td {
+  padding: 12px 16px;
+  color: var(--textPrimary);
+  vertical-align: middle;
+}
+
+/* Right-align salary values so decimal points line up visually */
+.salaryCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;  /* Fixed-width digits so columns align perfectly */
+  font-weight: 500;
+}
+
+/* The actions column (Edit / Delete buttons) */
+.actionCell {
+  display: flex;
+  gap: var(--spacingSm);
+  align-items: center;
+  white-space: nowrap;   /* Prevent buttons from wrapping to a new line */
+}
+
+/* Empty-state row shown when there are no results */
+.emptyRow {
+  text-align: center;
+  color: var(--textSecondary);
+  padding: var(--spacingXl) !important;  /* Override the normal cell padding for visual breathing room */
+  font-style: italic;
+}
+
+/* ===========================================================================
+   7. Buttons
+   Four variants: primary (blue), secondary (grey), edit (blue outline), delete (red outline)
+   =========================================================================== */
+
+/* Shared base styles for all buttons */
+.btnPrimary,
+.btnSecondary,
+.btnEdit,
+.btnDelete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: var(--borderRadius);
+  font-size: var(--fontSizeSm);
+  font-weight: 500;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+/* ---- Primary Button — blue fill, used for "Add" and "Save" ---- */
+.btnPrimary {
+  background-color: var(--colorPrimary);
+  color: #ffffff;
+  border-color: var(--colorPrimary);
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background-color: var(--colorPrimaryHover);
+  border-color: var(--colorPrimaryHover);
+}
+
+/* ---- Secondary Button — grey outline, used for "Cancel" ---- */
+.btnSecondary {
+  background-color: #ffffff;
+  color: var(--colorSecondary);
+  border-color: var(--borderColor);
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background-color: #f9fafb;
+  color: var(--colorSecondaryHover);
+}
+
+/* ---- Edit Button — small blue outline, in the table action cell ---- */
+.btnEdit {
+  padding: 5px 12px;
+  background-color: #ffffff;
+  color: var(--colorPrimary);
+  border-color: var(--colorPrimary);
+  font-size: 0.8rem;
+}
+
+.btnEdit:hover {
+  background-color: var(--colorPrimary);
+  color: #ffffff;
+}
+
+/* ---- Delete Button — small red outline, in the table action cell ---- */
+.btnDelete {
+  padding: 5px 12px;
+  background-color: #ffffff;
+  color: var(--colorDanger);
+  border-color: var(--colorDanger);
+  font-size: 0.8rem;
+}
+
+.btnDelete:hover {
+  background-color: var(--colorDanger);
+  color: #ffffff;
+}
+
+/* Disabled state — applies to all button variants via the shared :disabled selector */
+.btnPrimary:disabled,
+.btnSecondary:disabled {
+  opacity: 0.55;     /* Visually dim the button so users know it's not clickable */
+  cursor: not-allowed;
+}
+
+/* ===========================================================================
+   8. Modal
+   The overlay backdrop + centred dialog box used by both form components.
+   =========================================================================== */
+
+/* Full-screen backdrop — covers the entire viewport with a semi-transparent overlay */
+.modalBackdrop {
+  position: fixed;       /* Fixed so it stays in place when the page is scrolled */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.55);  /* Semi-transparent black — dims the page behind */
+  display: flex;
+  align-items: center;    /* Centre the dialog box vertically */
+  justify-content: center;
+  /* z-index above everything else — nothing should appear on top of a modal */
+  z-index: 1000;
+  padding: var(--spacingMd);  /* Padding so the modal doesn't touch screen edges on mobile */
+}
+
+/* The visible dialog box centred on the backdrop */
+.modalBox {
+  background-color: var(--bgCard);
+  border-radius: var(--borderRadiusLg);
+  box-shadow: var(--shadowModal);
+  width: 100%;
+  max-width: 480px;        /* Cap width so it doesn't stretch across a wide monitor */
+  max-height: 90vh;        /* Cap height so the modal doesn't overflow on short screens */
+  overflow-y: auto;        /* Scroll inside the modal if content is taller than 90vh */
+  animation: modalSlideIn 0.2s ease-out;  /* Subtle entrance animation — see keyframes below */
+}
+
+/* Entrance animation: modal fades in and slides up slightly */
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header bar inside the modal: title on left, close button on right */
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacingMd) var(--spacingLg);
+  border-bottom: 1px solid var(--borderColor);  /* Visual separator between header and body */
+}
+
+.modalTitle {
+  font-size: var(--fontSizeLg);
+  font-weight: 600;
+  color: var(--textPrimary);
+}
+
+/* The × close button in the modal header */
+.modalCloseBtn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--textSecondary);
+  padding: 4px 8px;
+  border-radius: var(--borderRadius);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.modalCloseBtn:hover {
+  color: var(--textPrimary);
+  background-color: #f1f5f9;
+}
+
+/* The content area inside the modal where the form renders */
+.modalBody {
+  padding: var(--spacingLg);
+}
+
+/* ===========================================================================
+   9. Forms
+   Styles for the DepartmentForm and EmployeeForm components.
+   =========================================================================== */
+
+/* .formGroup wraps one label + input pair, providing consistent vertical spacing */
+.formGroup {
+  display: flex;
+  flex-direction: column;  /* Stack label above input vertically */
+  gap: 6px;                /* Small gap between label and input */
+  margin-bottom: var(--spacingMd);
+}
+
+/* The last formGroup in a form doesn't need bottom margin — formActions provides spacing */
+.formGroup:last-of-type {
+  margin-bottom: 0;
+}
+
+/* Form labels */
+.formGroup label {
+  font-size: var(--fontSizeSm);
+  font-weight: 500;
+  color: var(--textPrimary);
+}
+
+/* Red asterisk marking required fields */
+.requiredStar {
+  color: var(--colorDanger);
+  margin-left: 2px;
+}
+
+/* Base styles for text inputs and selects */
+.formGroup input,
+.formGroup select {
+  padding: 9px 12px;
+  border: 1px solid var(--borderColor);
+  border-radius: var(--borderRadius);
+  font-size: var(--fontSizeBase);
+  color: var(--textPrimary);
+  background-color: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;   /* Always full-width inside the form group */
+}
+
+/* Focus ring — visible keyboard-navigation indicator */
+.formGroup input:focus,
+.formGroup select:focus {
+  outline: none;
+  border-color: var(--colorPrimary);
+  /* Subtle glow matches the primary colour */
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Error state on an input — red border to draw attention */
+.inputError {
+  border-color: var(--colorDanger) !important;
+}
+
+.inputError:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+}
+
+/* Field-level error message shown below an invalid input */
+.fieldError {
+  font-size: var(--fontSizeSm);
+  color: var(--colorDanger);
+  font-weight: 500;
+}
+
+/* The row of Cancel / Save buttons at the bottom of the form */
+.formActions {
+  display: flex;
+  justify-content: flex-end;  /* Right-align buttons — standard dialog UX */
+  gap: var(--spacingMd);
+  margin-top: var(--spacingLg);
+  padding-top: var(--spacingMd);
+  border-top: 1px solid var(--borderColor);  /* Visual separator above the buttons */
+}
+
+/* ===========================================================================
+   10. Status States — Loading, Errors, Empty
+   =========================================================================== */
+
+/* Loading text shown while an API call is in flight */
+.loadingText {
+  text-align: center;
+  color: var(--textSecondary);
+  padding: var(--spacingXl);
+  font-style: italic;
+  font-size: var(--fontSizeLg);
+}
+
+/* Error banner — shown on page load failures and failed deletes */
+.errorBanner {
+  background-color: #fef2f2;  /* Very light red background */
+  color: #991b1b;              /* Dark red text — high contrast on the light background */
+  border: 1px solid #fecaca;  /* Slightly darker red border */
+  border-left: 4px solid var(--colorDanger);  /* Bold left accent strip = "alert" signal */
+  border-radius: var(--borderRadius);
+  padding: 12px var(--spacingMd);
+  margin-bottom: var(--spacingMd);
+  font-size: var(--fontSizeSm);
+  font-weight: 500;
+}

@@ -1,0 +1,91 @@
+# Compiled Java files
+**/*.class
+
+# JAR/WAR/EAR files
+**/*.jar
+**/*.war
+**/*.ear
+
+# Maven build output
+target/
+**/target/
+
+# Maven local repository
+**/.m2/
+.m2/
+
+# Maven metadata files
+**/*.pom
+**/*.sha1
+**/*.sha256
+**/*.md5
+**/*.repositories
+**/_remote.repositories
+
+# IDE files
+.settings/
+.classpath
+.project
+.idea/
+*.iml
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# ── SECURITY - Never send to Cursor AI ──────────────────
+**/*.env
+.env
+.env.*
+**/application-prod.properties
+**/application-secret.properties
+**/application-production.properties
+**/db.properties
+**/database.properties
+**/secret*.properties
+**/credentials*.properties
+**/*.pem
+**/*.key
+**/*.p12
+**/*.jks
+**/*.keystore
+**/*.cer
+**/*.crt
+**/config/prod/*
+**/config/production/*
+
+# Root context & all constants
+**/WEB-INF/spring/root-context.xml
+**/WEB-INF/spring/constants.xml
+**/WEB-INF/spring/all-constants.xml
+**/WEB-INF/spring/local-constants.xml
+
+# Client specific - LIVE environments
+**/WEB-INF/spring/*-live-constants.xml
+**/WEB-INF/spring/*-uat-constants.xml
+**/WEB-INF/spring/*-preprod-constants.xml
+**/WEB-INF/spring/*-prod-constants.xml
+
+# All *-constants.xml (covers everything)
+**/WEB-INF/spring/*-constants.xml
+
+# Scheduler configs (may have server URLs)
+**/WEB-INF/spring/schedulars*.xml
+**/WEB-INF/spring/*-schedulars.xml
+
+# Redis, ActiveMQ, ACL (credentials)
+**/WEB-INF/spring/redis-bean.xml
+**/WEB-INF/spring/activemq-context.xml
+**/WEB-INF/spring/acl-context.xml
+
+# Service & tracking constants
+**/WEB-INF/spring/service-constants.xml
+**/WEB-INF/spring/tracking-constants.xml
+
+# Entire spring folder as final safety net
+**/WEB-INF/spring/

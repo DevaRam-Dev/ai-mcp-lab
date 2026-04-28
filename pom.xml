@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+    ============================================================
+    SPRING BOOT PARENT
+    ============================================================
+    LEARNING NOTE: This is the biggest difference from your current setup.
+
+    In your EFFORT-Web project you manually declare every dependency version
+    in dependencyManagement (or inline).  Spring Boot's parent POM is a
+    "Bill of Materials" (BOM) that pre-defines compatible, tested versions
+    for hundreds of libraries so you almost never set a version tag.
+
+    Equivalent in Spring MVC world:
+        You used to do this manually in root-context.xml + pom.xml — e.g.
+        spring.version=6.1.6, hibernate.version=..., log4j2.version=...
+        Spring Boot does all of that for you through the parent POM.
+
+    spring-boot-starter-parent also configures:
+        - maven-compiler-plugin  (sets source/target to java.version property)
+        - maven-surefire-plugin  (test runner)
+        - maven-failsafe-plugin  (integration tests)
+        - resource filtering for application.properties / application.yml
+        - UTF-8 source encoding
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.0</version>
+        <!-- relativePath empty = always fetch from Maven Central, not local reactor -->
+        <relativePath/>
+    </parent>
+
+    <!-- ============================================================
+         PROJECT COORDINATES
+         ============================================================ -->
+    <groupId>com.devaram</groupId>
+    <artifactId>ai-mcp-lab</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+
+    <!--
+    LEARNING NOTE: Packaging difference.
+    Your EFFORT-Web is a WAR deployed to Tomcat.
+    Spring Boot defaults to JAR with an embedded Tomcat (Tomcat is a
+    dependency, not a server you manage separately).
+    You can still produce a WAR if you need external Tomcat, but for
+    learning / microservices the embedded JAR approach is standard.
+    -->
+    <packaging>jar</packaging>
+
+    <name>ai-mcp-lab</name>
+    <description>Learning project: Spring Boot 3.2 + MCP Java SDK</description>
+
+    <!-- ============================================================
+         GLOBAL PROPERTIES
+         ============================================================
+    Spring Boot parent reads java.version and passes it to the compiler plugin.
+    In your EFFORT-Web you set this manually in the plugin config.
+    -->
+    <properties>
+        <java.version>21</java.version>
+    </properties>
+
+    <!-- ============================================================
+         DEPENDENCIES
+         ============================================================ -->
+    <dependencies>
+
+        <!-- ============================================================
+             1. SPRING BOOT STARTER: WEB
+             ============================================================
+             What it does:
+             Pulls in Spring MVC, embedded Tomcat, Jackson (JSON),
+             validation API, and all their transitive deps in one line.
+
+             In EFFORT-Web you had to declare each of these separately:
+                 spring-webmvc, tomcat-embed-*, jackson-databind,
+                 jakarta.servlet-api ...
+
+             Auto-configuration magic:
+             DispatcherServlet is registered automatically.
+             You no longer need web.xml, servlet-context.xml, or the
+             manual servlet + servlet-mapping entries.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <!-- No version: inherited from Spring Boot parent BOM -->
+        </dependency>
+
+        <!-- ============================================================
+             2. SPRING BOOT STARTER: JDBC
+             ============================================================
+             What it does:
+             Pulls in spring-jdbc (JdbcTemplate), HikariCP (connection pool),
+             and the Spring Boot DataSource auto-configuration.
+
+             LEARNING NOTE: DataSource auto-configuration.
+             In EFFORT-Web you configured HikariCP in XML like this:
+                 bean id="dataSource" class="com.zaxxer.hikari.HikariDataSource"
+                     property name="jdbcUrl"  value="${db.url}"
+                     property name="username" value="${db.username}"
+                 bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate"
+                     constructor-arg ref="dataSource"
+
+             With Spring Boot you just add these lines to application.properties:
+                 spring.datasource.url=jdbc:mysql://localhost:3306/mydb
+                 spring.datasource.username=root
+                 spring.datasource.password=secret
+                 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+             Spring Boot's DataSourceAutoConfiguration detects HikariCP on the
+             classpath and wires the DataSource bean for you.
+             JdbcTemplateAutoConfiguration then wraps it in a JdbcTemplate bean,
+             ready to @Autowire wherever you need it — zero XML required.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+
+        <!-- ============================================================
+             3. MYSQL CONNECTOR/J
+             ============================================================
+             What it does:
+             The official MySQL JDBC driver. Spring Boot's DataSource
+             auto-configuration uses this at runtime to create connections.
+
+             Scope is 'runtime' because your Java code never imports
+             com.mysql.* directly — you code against the standard
+             java.sql.* / javax.sql.* APIs (same as in EFFORT-Web).
+
+             LEARNING NOTE: Version management.
+             Spring Boot parent BOM pins a specific mysql-connector-j version.
+             Override only if you need a different version:
+                 version 8.3.0 /version
+        -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ============================================================
+             4. MCP JAVA SDK: SERVER
+             ============================================================
+             What it does:
+             The official Model Context Protocol Java SDK from
+             io.modelcontextprotocol.sdk.  Allows you to build an MCP
+             Server that exposes "tools", "resources", and "prompts"
+             to AI clients (e.g., Claude Desktop, Claude Code).
+
+             Key MCP concepts you will use:
+               @Tool         — Expose a Java method as an MCP Tool
+                               (AI agents call this like a function)
+               @Resource     — Expose data (files, DB rows) as MCP Resources
+                               (AI reads these for context)
+               McpServer     — The main server class; configure transport
+                               (stdio or SSE/HTTP)
+               StdioTransport / SseTransport
+
+             LEARNING NOTE: MCP vs REST API.
+             A REST API is called by humans / frontends.
+             An MCP server is called by AI models (LLMs).
+             Same Java method, different caller — think of it as an
+             "AI-native API layer" on top of your existing services.
+        -->
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp</artifactId>
+            <version>0.9.0</version>
+        </dependency>
+
+        <!-- ============================================================
+             5. LOMBOK
+             ============================================================
+             What it does:
+             Annotation processor that generates boilerplate at compile
+             time: getters, setters, constructors, builders, loggers.
+
+             Usage in this project:
+               @Data                    — generates all getters, setters, equals/hashCode
+               @Builder                 — fluent builder pattern
+               @RequiredArgsConstructor — constructor for final fields (replaces
+                                          manual @Autowired constructor injection)
+               @Slf4j                   — injects a private static Logger field named 'log'
+                                          (same as your Log4j2 loggers in EFFORT-Web, just
+                                          without the boilerplate declaration)
+
+             LEARNING NOTE: annotationProcessorPaths.
+             For full IDE support in IntelliJ, enable:
+             Settings > Build > Compiler > Annotation Processors > Enable.
+             The maven-compiler-plugin in Spring Boot parent already handles
+             annotation processing during 'mvn compile'.
+        -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <!-- 'provided' = compile-time only, not included in the JAR -->
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ============================================================
+             6. SPRING BOOT STARTER: VALIDATION
+             ============================================================
+             Brings in Hibernate Validator (Jakarta Bean Validation 3.x).
+             Required for @NotBlank, @Email, @NotNull, @Positive to work
+             on request DTOs when controllers use @Valid.
+             spring-boot-starter-web does NOT include this automatically.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- ============================================================
+             7. SPRING BOOT TEST STARTER
+             ============================================================
+             What it does:
+             Pulls in JUnit 5, Mockito, AssertJ, and Spring Test context
+             support.  @SpringBootTest loads the full application context
+             for integration tests — no TestNG XML or manual Spring test
+             context wiring needed (unlike EFFORT-Web's 3-file test setup).
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <!-- ============================================================
+         BUILD PLUGINS
+         ============================================================ -->
+    <build>
+        <plugins>
+
+            <!--
+            SPRING BOOT MAVEN PLUGIN
+            ============================================================
+            What it does:
+            1. mvn spring-boot:run — starts the embedded Tomcat in-process
+               (no WAR deploy needed; replaces your Tomcat Manager workflow)
+
+            2. mvn package — produces a single "fat JAR" (also called
+               "uber JAR" or "executable JAR") that contains:
+               - your compiled classes
+               - all dependencies (HikariCP, MySQL driver, Spring jars...)
+               - embedded Tomcat
+               Run anywhere with:  java -jar target/ai-mcp-lab-0.0.1-SNAPSHOT.jar
+
+            LEARNING NOTE: Fat JAR vs WAR.
+            In EFFORT-Web you build a WAR and copy it to Tomcat's webapps/.
+            Here Tomcat is inside the JAR.  For cloud / Docker deployments
+            this is a huge simplification — one artifact, no server to manage.
+
+            3. repackage goal (runs automatically on 'mvn package') wraps the
+               original JAR with the Boot launcher so it is executable.
+            -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- Exclude Lombok from the fat JAR (compile-time only) -->
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <!--
+    ============================================================
+    QUICK REFERENCE: Spring Boot vs EFFORT-Web equivalents
+    ============================================================
+
+    EFFORT-Web (Spring MVC WAR)          | This project (Spring Boot JAR)
+    ===================================== | =======================================
+    web.xml                              | No web.xml: auto-configured
+    servlet-context.xml                  | @SpringBootApplication + auto-config
+    root-context.xml bean definitions    | application.properties + auto-config
+    bean id="dataSource"                 | spring.datasource.* properties
+    bean id="jdbcTemplate"               | Auto-wired JdbcTemplate bean
+    HikariCP XML bean                    | HikariCP auto-configured by Boot
+    *-constants.xml per environment      | application-{profile}.properties
+    Deployed WAR to external Tomcat      | java -jar (embedded Tomcat)
+    Log4j2 via log4j2.properties         | Same file, or Logback (Boot default)
+    ============================================================
+    -->
+
+</project>

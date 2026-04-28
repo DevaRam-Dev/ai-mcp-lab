@@ -1,0 +1,26 @@
+# Standard Build Folders (Save Indexing time)
+target/
+build/
+bin/
+*.class
+*.jar
+*.war
+
+# IDE Noise
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+
+# Large Data & Logs (Avoids token waste)
+logs/
+*.log
+temp/
+node_modules/
+
+# Security (CRITICAL)
+.env*
+*.pem
+*.key
+.claude/memory/  # Stops Cursor from reading Claude's internal logs
