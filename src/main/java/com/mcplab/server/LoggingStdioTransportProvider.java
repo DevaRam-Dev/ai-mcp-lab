@@ -59,7 +59,10 @@ public class LoggingStdioTransportProvider extends StdioServerTransportProvider 
 
     public LoggingStdioTransportProvider() {
         super(new ObjectMapper(), new LoggingInputStream(System.in), new LoggingOutputStream(System.out));
-        log.info("MCP wire logging active — inbound/outbound JSON-RPC lines appear on stderr");
+        System.err.println("=========================================");
+        System.err.println("MCP wire logging active — inbound/outbound JSON-RPC lines appear on stderr");
+        System.err.println("=========================================");
+        log.info("LoggingStdioTransportProvider constructed — wire logging banner emitted to stderr");
     }
 
     // =========================================================================

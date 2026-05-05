@@ -9,6 +9,8 @@ import io.modelcontextprotocol.server.McpSyncServer;
 import io.modelcontextprotocol.server.transport.HttpServletSseServerTransportProvider;
 import io.modelcontextprotocol.spec.McpSchema;
 import io.modelcontextprotocol.spec.McpServerTransportProvider;
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -66,8 +68,14 @@ import org.springframework.context.annotation.Profile;
  * You can have BOTH in the same Spring Boot app:
  *   REST controllers for human users, MCP tools for AI agents.
  */
+@Slf4j
 @Configuration
 public class McpServerConfig {
+
+    @PostConstruct
+    void logStartup() {
+        log.info("McpServerConfig loaded — profile-active beans will follow @ {}", java.time.Instant.now());
+    }
 
     // =========================================================================
     // TRANSPORT BEAN — STDIO (profile: mcp)
@@ -84,6 +92,7 @@ public class McpServerConfig {
     @Bean
     @Profile("mcp")
     public McpServerTransportProvider stdioTransportProvider() {
+        log.info("[MCP] stdio transport bean created (profile=mcp)");
         return new LoggingStdioTransportProvider();
     }
 
@@ -106,6 +115,7 @@ public class McpServerConfig {
     @Bean
     @Profile("mcp-http")
     public McpServerTransportProvider httpSseTransportProvider(ObjectMapper objectMapper) {
+        log.info("[MCP] HTTP/SSE transport bean created (profile=mcp-http)");
         return new HttpServletSseServerTransportProvider(objectMapper, "/mcp/messages");
     }
 
@@ -133,6 +143,7 @@ public class McpServerConfig {
     @Profile("mcp-http")
     public ServletRegistrationBean<HttpServletSseServerTransportProvider> mcpServletRegistration(
             McpServerTransportProvider transportProvider) {
+        log.info("[MCP] HTTP servlet registered at /sse and /mcp/messages");
         HttpServletSseServerTransportProvider httpProvider =
                 (HttpServletSseServerTransportProvider) transportProvider;
         ServletRegistrationBean<HttpServletSseServerTransportProvider> registration =
@@ -177,6 +188,7 @@ public class McpServerConfig {
                                        EmployeeTool employeeTool,
                                        DepartmentTool departmentTool) {
 
+        log.info("[MCP] MCP server built — {} tools registered", 11);
         return McpServer.sync(transportProvider)
 
                 .serverInfo("ai-mcp-lab", "1.0.0")
