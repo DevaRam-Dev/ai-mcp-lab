@@ -23,6 +23,6 @@ AI Client (Claude Desktop / Claude Code)
 ## Example files that will go here
 | File | Purpose |
 |------|---------|
-| `AiMcpLabApplication.java` | `@SpringBootApplication` main class — starts embedded Tomcat + MCP server |
+| `AiMcpLabApplication.java` | `@SpringBootApplication` main class — lives at `com.mcplab` (root package) to enable full component scan |
 | `McpServerConfig.java` | Registers `McpServer` bean, selects transport (stdio vs SSE) |
 | `SseServerTransportConfig.java` | Optional — SSE/HTTP transport setup for remote AI clients |

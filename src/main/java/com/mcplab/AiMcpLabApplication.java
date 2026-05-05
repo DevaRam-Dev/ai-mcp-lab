@@ -1,4 +1,4 @@
-package com.mcplab.server;
+package com.mcplab;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -42,12 +42,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *      Auto-configuration replaces that entirely.
  *
  *   3. @ComponentScan
- *      Scans the package of this class (com.mcplab.server) and all sub-packages for
+ *      Scans the package of this class (com.mcplab) and all sub-packages for
  *      @Component, @Service, @Repository, @Controller, @RestController, and @Configuration.
  *      Equivalent to:
  *          <context:component-scan base-package="com.mcplab"/> in root-context.xml
- *      Because this class lives in com.mcplab.server, Spring scans com.mcplab.* —
- *      which covers com.mcplab.tools and com.mcplab.config automatically.
+ *      Because this class lives in com.mcplab, Spring scans all sub-packages —
+ *      com.mcplab.tools, com.mcplab.server, com.mcplab.controller, com.mcplab.repository,
+ *      com.mcplab.dto, com.mcplab.exception, etc. — automatically.
  */
 @SpringBootApplication
 public class AiMcpLabApplication {
