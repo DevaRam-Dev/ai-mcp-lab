@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mcplab.repository.DepartmentRepository;
 import com.mcplab.repository.EmployeeRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -31,17 +32,30 @@ public class EmployeeTool {
     private final DepartmentRepository departmentRepository;
     private final ObjectMapper objectMapper;
 
+    @PostConstruct
+    public void init() {
+        log.info(box("EmployeeTool initialized and ready")
+            + lbl("Layer",   "MCP-TOOL → EmployeeTool")
+            + lbl("ANALOGY", "AI-accessible HR desk opened"));
+    }
+
     // =========================================================================
     // listEmployees — optional departmentId filter
     // =========================================================================
     public String listEmployees(Map<String, Object> args) {
+        long start = System.currentTimeMillis();
+        log.info(box("MCP-TOOL : listEmployees")
+            + lbl("Layer",       "MCP-TOOL → EmployeeTool")
+            + lbl("Input",       "departmentId=" + args.get("departmentId") + " (null = all departments)")
+            + lbl("Description", "Return employees, optionally filtered by department"));
         try {
             Integer deptId = getInt(args, "departmentId");
             var rows = employeeRepository.findAll(deptId);
-            log.info("listEmployees: {} row(s), deptFilter={}", rows.size(), deptId);
+            log.info("[MCP-TOOL → EmployeeTool] OUTPUT: listEmployees | count={} | deptFilter={} | duration={}ms",
+                    rows.size(), deptId, System.currentTimeMillis() - start);
             return toJson(Map.of("employees", rows, "count", rows.size()));
         } catch (Exception e) {
-            log.error("listEmployees failed", e);
+            log.error("[MCP-TOOL → EmployeeTool] ERROR: listEmployees | {}", e.getMessage(), e);
             return error(e.getMessage());
         }
     }
@@ -51,13 +65,21 @@ public class EmployeeTool {
     // =========================================================================
     public String getEmployeeById(Map<String, Object> args) {
         Integer id = getInt(args, "id");
+        long start = System.currentTimeMillis();
+        log.info(box("MCP-TOOL : getEmployeeById")
+            + lbl("Layer",       "MCP-TOOL → EmployeeTool")
+            + lbl("Input",       "id=" + id)
+            + lbl("Description", "Return single employee record by ID"));
         if (id == null) return error("Required parameter 'id' is missing or invalid");
         try {
-            return employeeRepository.findById(id)
+            String result = employeeRepository.findById(id)
                     .map(this::toJson)
                     .orElse(error("Employee with id " + id + " not found"));
+            log.info("[MCP-TOOL → EmployeeTool] OUTPUT: getEmployeeById | id={} | duration={}ms",
+                    id, System.currentTimeMillis() - start);
+            return result;
         } catch (Exception e) {
-            log.error("getEmployeeById failed id={}", id, e);
+            log.error("[MCP-TOOL → EmployeeTool] ERROR: getEmployeeById | id={} | {}", id, e.getMessage(), e);
             return error(e.getMessage());
         }
     }
@@ -70,7 +92,11 @@ public class EmployeeTool {
         String email  = getString(args, "email");
         Integer deptId = getInt(args, "departmentId");
         Double salary  = getDouble(args, "salary");
-
+        long start = System.currentTimeMillis();
+        log.info(box("MCP-TOOL : createEmployee")
+            + lbl("Layer",       "MCP-TOOL → EmployeeTool")
+            + lbl("Input",       "name=" + name + ", email=" + email + ", departmentId=" + deptId + ", salary=" + salary)
+            + lbl("Description", "Create new employee record"));
         if (isBlank(name))   return error("Required parameter 'name' is missing or empty");
         if (isBlank(email))  return error("Required parameter 'email' is missing or empty");
         if (deptId == null)  return error("Required parameter 'departmentId' is missing or invalid");
@@ -82,10 +108,11 @@ public class EmployeeTool {
 
         try {
             var created = employeeRepository.create(name, email, deptId, salary);
-            log.info("createEmployee: inserted id={}", created.get("id"));
+            log.info("[MCP-TOOL → EmployeeTool] OUTPUT: createEmployee | insertedId={} | duration={}ms",
+                    created.get("id"), System.currentTimeMillis() - start);
             return toJson(created);
         } catch (Exception e) {
-            log.error("createEmployee failed", e);
+            log.error("[MCP-TOOL → EmployeeTool] ERROR: createEmployee | {}", e.getMessage(), e);
             return error(e.getMessage());
         }
     }
@@ -95,6 +122,11 @@ public class EmployeeTool {
     // =========================================================================
     public String updateEmployee(Map<String, Object> args) {
         Integer id    = getInt(args, "id");
+        long start = System.currentTimeMillis();
+        log.info(box("MCP-TOOL : updateEmployee")
+            + lbl("Layer",       "MCP-TOOL → EmployeeTool")
+            + lbl("Input",       "id=" + id + ", name=" + args.get("name") + ", deptId=" + args.get("departmentId"))
+            + lbl("Description", "Partial update — only non-null fields applied"));
         if (id == null) return error("Required parameter 'id' is missing or invalid");
 
         String name   = getString(args, "name");
@@ -110,11 +142,14 @@ public class EmployeeTool {
         }
 
         try {
-            return employeeRepository.update(id, name, email, deptId, salary)
+            String result = employeeRepository.update(id, name, email, deptId, salary)
                     .map(this::toJson)
                     .orElse(error("Employee with id " + id + " not found"));
+            log.info("[MCP-TOOL → EmployeeTool] OUTPUT: updateEmployee | id={} | duration={}ms",
+                    id, System.currentTimeMillis() - start);
+            return result;
         } catch (Exception e) {
-            log.error("updateEmployee failed id={}", id, e);
+            log.error("[MCP-TOOL → EmployeeTool] ERROR: updateEmployee | id={} | {}", id, e.getMessage(), e);
             return error(e.getMessage());
         }
     }
@@ -124,15 +159,21 @@ public class EmployeeTool {
     // =========================================================================
     public String deleteEmployee(Map<String, Object> args) {
         Integer id = getInt(args, "id");
+        long start = System.currentTimeMillis();
+        log.info(box("MCP-TOOL : deleteEmployee")
+            + lbl("Layer",       "MCP-TOOL → EmployeeTool")
+            + lbl("Input",       "id=" + id)
+            + lbl("Description", "Delete employee record by ID"));
         if (id == null) return error("Required parameter 'id' is missing or invalid");
         try {
             if (!employeeRepository.delete(id)) {
                 return error("Employee with id " + id + " not found");
             }
-            log.info("deleteEmployee: deleted id={}", id);
+            log.info("[MCP-TOOL → EmployeeTool] OUTPUT: deleteEmployee | deleted id={} | duration={}ms",
+                    id, System.currentTimeMillis() - start);
             return toJson(Map.of("deleted", true, "id", id));
         } catch (Exception e) {
-            log.error("deleteEmployee failed id={}", id, e);
+            log.error("[MCP-TOOL → EmployeeTool] ERROR: deleteEmployee | id={} | {}", id, e.getMessage(), e);
             return error(e.getMessage());
         }
     }
@@ -177,5 +218,19 @@ public class EmployeeTool {
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Log formatting helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static final String BOX_H = "═".repeat(76);
+
+    private static String box(String title) {
+        return "\n╔" + BOX_H + "╗\n║  " + String.format("%-74s", title) + "║\n╚" + BOX_H + "╝";
+    }
+
+    private static String lbl(String label, Object value) {
+        return "\n   " + String.format("%-11s", label) + " : " + value;
     }
 }

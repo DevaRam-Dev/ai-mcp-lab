@@ -1,5 +1,6 @@
 package com.mcplab.tools;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -109,6 +110,13 @@ public class DatabaseStatusTool {
      */
     private final JdbcTemplate jdbcTemplate;
 
+    @PostConstruct
+    public void init() {
+        log.info(box("DatabaseStatusTool initialized and ready")
+            + lbl("Layer",   "MCP-TOOL → DatabaseStatusTool")
+            + lbl("ANALOGY", "Database librarian opened the archive room"));
+    }
+
     /*
      * getDatabaseStatus()
      * ===================
@@ -132,7 +140,11 @@ public class DatabaseStatusTool {
     public String getDatabaseStatus() {
 
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
-
+        long start = System.currentTimeMillis();
+        log.info(box("MCP-TOOL : getDatabaseStatus")
+            + lbl("Layer",       "MCP-TOOL → DatabaseStatusTool")
+            + lbl("Input",       "none — SELECT 1 probe")
+            + lbl("Description", "Check MySQL connectivity and return status string"));
         try {
             /*
              * "SELECT 1" is the standard lightweight connectivity probe.
@@ -145,7 +157,8 @@ public class DatabaseStatusTool {
              */
             Integer probeResult = jdbcTemplate.queryForObject("SELECT 1", Integer.class);
 
-            log.info("Database health check passed. SELECT 1 = {}", probeResult);
+            log.info("[MCP-TOOL → DatabaseStatusTool] OUTPUT: getDatabaseStatus | probe=SELECT 1 returned {} | duration={}ms",
+                    probeResult, System.currentTimeMillis() - start);
 
             return String.format(
                     "Database status: CONNECTED | "
@@ -178,7 +191,7 @@ public class DatabaseStatusTool {
              * Rule of thumb: MCP tool error messages are user-facing, not developer-facing.
              * Write them the way you would write a UI error message.
              */
-            log.error("Database health check failed at {}", timestamp, e);
+            log.error("[MCP-TOOL → DatabaseStatusTool] ERROR: getDatabaseStatus | checkedAt={} | {}", timestamp, e.getMessage(), e);
 
             return String.format(
                     "ERROR: Database unreachable | "
@@ -188,5 +201,19 @@ public class DatabaseStatusTool {
                     timestamp
             );
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Log formatting helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static final String BOX_H = "═".repeat(76);
+
+    private static String box(String title) {
+        return "\n╔" + BOX_H + "╗\n║  " + String.format("%-74s", title) + "║\n╚" + BOX_H + "╝";
+    }
+
+    private static String lbl(String label, Object value) {
+        return "\n   " + String.format("%-11s", label) + " : " + value;
     }
 }

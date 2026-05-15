@@ -1,5 +1,6 @@
 package com.mcplab.repository;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -33,6 +34,13 @@ public class DepartmentRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
+    @PostConstruct
+    public void init() {
+        log.info(box("DepartmentRepository initialized and ready")
+            + lbl("Layer",   "DB → DepartmentRepository")
+            + lbl("ANALOGY", "Department filing cabinet unlocked and ready"));
+    }
+
     // Base SELECT used by all queries that return department rows.
     // The LEFT JOIN ensures departments with zero employees still appear
     // with employeeCount = 0.
@@ -46,19 +54,26 @@ public class DepartmentRepository {
     // findAll
     // =========================================================================
     public List<Map<String, Object>> findAll() {
-        return jdbcTemplate.queryForList(
+        long start = System.currentTimeMillis();
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
                 BASE_SELECT + "GROUP BY d.id, d.name, d.location ORDER BY d.id"
         );
+        log.debug("[DB] SELECT | table=Departments | resultCount={} | timeTaken={}ms",
+                rows.size(), System.currentTimeMillis() - start);
+        return rows;
     }
 
     // =========================================================================
     // findById
     // =========================================================================
     public Optional<Map<String, Object>> findById(int id) {
+        long start = System.currentTimeMillis();
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
                 BASE_SELECT + "WHERE d.id = ? GROUP BY d.id, d.name, d.location",
                 id
         );
+        log.debug("[DB] SELECT | table=Departments | id={} | found={} | timeTaken={}ms",
+                id, !rows.isEmpty(), System.currentTimeMillis() - start);
         return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
     }
 
@@ -80,7 +95,7 @@ public class DepartmentRepository {
         }, keyHolder);
 
         int newId = keyHolder.getKey().intValue();
-        log.info("DepartmentRepository.create: inserted id={}", newId);
+        log.info("[DB → DepartmentRepository] INSERT Departments | insertedId={}", newId);
         return findById(newId).orElseThrow();
     }
 
@@ -105,7 +120,7 @@ public class DepartmentRepository {
         int updated = jdbcTemplate.update(sql.toString(), params.toArray());
         if (updated == 0) return Optional.empty();
 
-        log.info("DepartmentRepository.update: updated id={}", id);
+        log.info("[DB → DepartmentRepository] UPDATE Departments | updatedId={}", id);
         return findById(id);
     }
 
@@ -114,7 +129,7 @@ public class DepartmentRepository {
     // =========================================================================
     public boolean delete(int id) {
         int deleted = jdbcTemplate.update("DELETE FROM `Departments` WHERE id = ?", id);
-        if (deleted > 0) log.info("DepartmentRepository.delete: deleted id={}", id);
+        if (deleted > 0) log.info("[DB → DepartmentRepository] DELETE Departments | deletedId={}", id);
         return deleted > 0;
     }
 
@@ -140,5 +155,19 @@ public class DepartmentRepository {
                 Integer.class, departmentId
         );
         return count != null ? count : 0;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Log formatting helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static final String BOX_H = "═".repeat(76);
+
+    private static String box(String title) {
+        return "\n╔" + BOX_H + "╗\n║  " + String.format("%-74s", title) + "║\n╚" + BOX_H + "╝";
+    }
+
+    private static String lbl(String label, Object value) {
+        return "\n   " + String.format("%-11s", label) + " : " + value;
     }
 }

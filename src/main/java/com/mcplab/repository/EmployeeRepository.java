@@ -1,5 +1,6 @@
 package com.mcplab.repository;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -34,6 +35,13 @@ public class EmployeeRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
+    @PostConstruct
+    public void init() {
+        log.info(box("EmployeeRepository initialized and ready")
+            + lbl("Layer",   "DB → EmployeeRepository")
+            + lbl("ANALOGY", "Employee filing cabinet unlocked and ready"));
+    }
+
     // Column list shared by every SELECT so aliases are applied consistently.
     static final String COLS =
             "id, name, email, `departmentId` AS departmentId, salary, `createdAt` AS createdAt";
@@ -42,15 +50,21 @@ public class EmployeeRepository {
     // findAll
     // =========================================================================
     public List<Map<String, Object>> findAll(Integer departmentId) {
+        long start = System.currentTimeMillis();
+        List<Map<String, Object>> rows;
         if (departmentId != null) {
-            return jdbcTemplate.queryForList(
+            rows = jdbcTemplate.queryForList(
                     "SELECT " + COLS + " FROM `Employees` WHERE `departmentId` = ? ORDER BY id",
                     departmentId
             );
+        } else {
+            rows = jdbcTemplate.queryForList(
+                    "SELECT " + COLS + " FROM `Employees` ORDER BY id"
+            );
         }
-        return jdbcTemplate.queryForList(
-                "SELECT " + COLS + " FROM `Employees` ORDER BY id"
-        );
+        log.debug("[DB] SELECT | table=Employees | resultCount={} | deptFilter={} | timeTaken={}ms",
+                rows.size(), departmentId, System.currentTimeMillis() - start);
+        return rows;
     }
 
     // =========================================================================
@@ -59,10 +73,13 @@ public class EmployeeRepository {
     // Returns Optional.empty() when no row exists — avoids throwing
     // EmptyResultDataAccessException from queryForObject().
     public Optional<Map<String, Object>> findById(int id) {
+        long start = System.currentTimeMillis();
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
                 "SELECT " + COLS + " FROM `Employees` WHERE id = ?",
                 id
         );
+        log.debug("[DB] SELECT | table=Employees | id={} | found={} | timeTaken={}ms",
+                id, !rows.isEmpty(), System.currentTimeMillis() - start);
         return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
     }
 
@@ -88,7 +105,7 @@ public class EmployeeRepository {
         }, keyHolder);
 
         int newId = keyHolder.getKey().intValue();
-        log.info("EmployeeRepository.create: inserted id={}", newId);
+        log.info("[DB → EmployeeRepository] INSERT Employees | insertedId={}", newId);
         return findById(newId).orElseThrow();
     }
 
@@ -124,7 +141,7 @@ public class EmployeeRepository {
         int updated = jdbcTemplate.update(sql.toString(), params.toArray());
         if (updated == 0) return Optional.empty();
 
-        log.info("EmployeeRepository.update: updated id={}", id);
+        log.info("[DB → EmployeeRepository] UPDATE Employees | updatedId={}", id);
         return findById(id);
     }
 
@@ -134,7 +151,21 @@ public class EmployeeRepository {
     // Returns true if a row was deleted, false if the id did not exist.
     public boolean delete(int id) {
         int deleted = jdbcTemplate.update("DELETE FROM `Employees` WHERE id = ?", id);
-        if (deleted > 0) log.info("EmployeeRepository.delete: deleted id={}", id);
+        if (deleted > 0) log.info("[DB → EmployeeRepository] DELETE Employees | deletedId={}", id);
         return deleted > 0;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Log formatting helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static final String BOX_H = "═".repeat(76);
+
+    private static String box(String title) {
+        return "\n╔" + BOX_H + "╗\n║  " + String.format("%-74s", title) + "║\n╚" + BOX_H + "╝";
+    }
+
+    private static String lbl(String label, Object value) {
+        return "\n   " + String.format("%-11s", label) + " : " + value;
     }
 }

@@ -72,9 +72,21 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 public class McpServerConfig {
 
+    private static final String BOX_H = "═".repeat(76);
+
+    private static String box(String title) {
+        return "\n╔" + BOX_H + "╗\n║  " + String.format("%-74s", title) + "║\n╚" + BOX_H + "╝";
+    }
+
+    private static String lbl(String label, Object value) {
+        return "\n   " + String.format("%-11s", label) + " : " + value;
+    }
+
     @PostConstruct
     void logStartup() {
-        log.info("McpServerConfig loaded — profile-active beans will follow @ {}", java.time.Instant.now());
+        log.info(box("McpServerConfig loaded — profile beans will follow")
+            + lbl("Layer",   "CONFIG → McpServerConfig")
+            + lbl("Time",    java.time.Instant.now()));
     }
 
     // =========================================================================
@@ -92,7 +104,7 @@ public class McpServerConfig {
     @Bean
     @Profile("mcp")
     public McpServerTransportProvider stdioTransportProvider() {
-        log.info("[MCP] stdio transport bean created (profile=mcp)");
+        log.info("[CONFIG → McpServerConfig] stdio transport bean created (profile=mcp)");
         return new LoggingStdioTransportProvider();
     }
 
@@ -115,7 +127,7 @@ public class McpServerConfig {
     @Bean
     @Profile("mcp-http")
     public McpServerTransportProvider httpSseTransportProvider(ObjectMapper objectMapper) {
-        log.info("[MCP] HTTP/SSE transport bean created (profile=mcp-http)");
+        log.info("[CONFIG → McpServerConfig] HTTP/SSE transport bean created (profile=mcp-http)");
         return new HttpServletSseServerTransportProvider(objectMapper, "/mcp/messages");
     }
 
@@ -143,7 +155,7 @@ public class McpServerConfig {
     @Profile("mcp-http")
     public ServletRegistrationBean<HttpServletSseServerTransportProvider> mcpServletRegistration(
             McpServerTransportProvider transportProvider) {
-        log.info("[MCP] HTTP servlet registered at /sse and /mcp/messages");
+        log.info("[CONFIG → McpServerConfig] HTTP servlet registered at /sse and /mcp/messages");
         HttpServletSseServerTransportProvider httpProvider =
                 (HttpServletSseServerTransportProvider) transportProvider;
         ServletRegistrationBean<HttpServletSseServerTransportProvider> registration =
@@ -188,7 +200,7 @@ public class McpServerConfig {
                                        EmployeeTool employeeTool,
                                        DepartmentTool departmentTool) {
 
-        log.info("[MCP] MCP server built — {} tools registered", 11);
+        log.info("[CONFIG → McpServerConfig] MCP server built — {} tools registered", 11);
         return McpServer.sync(transportProvider)
 
                 .serverInfo("ai-mcp-lab", "1.0.0")
